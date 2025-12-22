@@ -1,0 +1,51 @@
+<div class="space-y-6 text-white">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <p class="text-xs uppercase tracking-[0.35rem] text-white/50">Mission Control</p>
+      <h1 class="text-3xl font-semibold">Realtime execution pulse</h1>
+      <p class="text-sm text-white/60">Stay ahead of blockers across Admin, Manager, and Employee swimlanes.</p>
+    </div>
+    <button class="self-start rounded-2xl border border-white/10 px-5 py-3 text-sm text-white/70 hover:border-white/30" (click)="refresh()">
+      Refresh metrics
+    </button>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <app-stat-card label="Open" [value]="snapshot()?.open ?? 0" hint="Awaiting kickoff" />
+    <app-stat-card label="In Progress" [value]="snapshot()?.inProgress ?? 0" hint="Active execution" />
+    <app-stat-card label="Completed" [value]="snapshot()?.completed ?? 0" hint="Shipped this sprint" />
+    <app-stat-card label="Blocked" [value]="snapshot()?.blocked ?? 0" hint="Require attention" />
+  </div>
+
+  <section class="space-y-4 rounded-3xl border border-white/5 bg-black/20 p-4 lg:p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[0.35rem] text-white/50">Live stream</p>
+        <p class="text-lg font-semibold">Priority initiatives</p>
+      </div>
+      <a routerLink="/tasks" class="text-sm font-semibold text-accent">View tasks</a>
+    </div>
+
+    @if (loading()) {
+      <div class="py-6 text-center"><app-spinner /></div>
+    } @else if (spotlight().length === 0) {
+      <app-empty-state title="No tasks in-flight" description="All calm for now. Create a task to kick off work." />
+    } @else {
+      <div class="space-y-3">
+        @for (task of spotlight(); track task.id) {
+          <article class="flex flex-col gap-2 rounded-2xl border border-white/5 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-base font-semibold">{{ task.title }}</p>
+              <p class="text-sm text-white/60">{{ task.description || 'No description' }}</p>
+              <p class="text-xs text-white/40">Owners: {{ task.assigneeNames?.join(', ') || 'Unassigned' }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <app-status-badge [status]="task.status" />
+              <app-status-badge [priority]="task.priority" />
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</div>

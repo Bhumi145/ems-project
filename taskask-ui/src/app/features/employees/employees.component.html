@@ -1,0 +1,66 @@
+<div class="space-y-6 text-white">
+  <div>
+    <p class="text-xs uppercase tracking-[0.35rem] text-white/50">People Ops</p>
+    <h1 class="text-3xl font-semibold">Operationalize teams</h1>
+  </div>
+
+  <form class="grid gap-4 rounded-3xl border border-white/5 bg-black/20 p-4 md:grid-cols-2" [formGroup]="form" (ngSubmit)="create()">
+    <label class="text-sm">
+      <span class="text-white/60">Full name</span>
+      <input formControlName="fullName" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" />
+    </label>
+    <label class="text-sm">
+      <span class="text-white/60">Email</span>
+      <input formControlName="email" type="email" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" />
+    </label>
+    <label class="text-sm">
+      <span class="text-white/60">Department</span>
+      <input formControlName="department" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" />
+    </label>
+    <label class="text-sm">
+      <span class="text-white/60">Title</span>
+      <input formControlName="title" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" />
+    </label>
+    <label class="text-sm">
+      <span class="text-white/60">Manager Id (optional)</span>
+      <input formControlName="managerId" type="number" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" />
+    </label>
+    <label class="text-sm">
+      <span class="text-white/60">Role</span>
+      <select formControlName="role" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3">
+        @for (role of roles; track role) {
+          <option [value]="role">{{ roleLabels[role] }}</option>
+        }
+      </select>
+    </label>
+    <label class="text-sm">
+      <span class="text-white/60">Password</span>
+      <input formControlName="password" type="password" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" />
+    </label>
+    <div class="flex items-end">
+      <button type="submit" class="w-full rounded-2xl bg-accent/80 px-4 py-3 text-sm font-semibold text-black hover:bg-accent">Add teammate</button>
+    </div>
+  </form>
+
+  <section class="rounded-3xl border border-white/5 bg-black/20 p-4">
+    <p class="text-sm font-semibold">Roster</p>
+    @if (loading()) {
+      <p class="py-4 text-sm text-white/60">Loading...</p>
+    } @else if (employees().length === 0) {
+      <app-empty-state title="No employees" description="Create your first teammate record." />
+    } @else {
+      <div class="mt-4 grid gap-3">
+        @for (employee of employees(); track employee.id) {
+          <article class="flex flex-col gap-2 rounded-2xl border border-white/5 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-lg font-semibold">{{ employee.fullName }}</p>
+              <p class="text-sm text-white/60">{{ employee.title || 'No title' }} · {{ employee.department || 'No dept' }}</p>
+              <p class="text-xs text-white/40">{{ roleLabels[employee.role] }}</p>
+            </div>
+            <button class="rounded-2xl border border-white/10 px-4 py-2 text-sm" (click)="deactivate(employee.id)">Remove</button>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</div>

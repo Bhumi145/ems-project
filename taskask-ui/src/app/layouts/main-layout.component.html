@@ -1,0 +1,50 @@
+<div class="grid min-h-[80vh] gap-6 rounded-[40px] border border-white/5 bg-surface/70 p-4 text-white shadow-card lg:grid-cols-[260px_1fr] lg:p-8">
+  <aside class="flex flex-col gap-8 rounded-3xl border border-white/5 bg-white/5 p-6">
+    <div class="space-y-4">
+      <p class="text-xs uppercase tracking-[0.35em] text-white/50">ETPMS</p>
+      <h2 class="text-2xl font-semibold">Taskask Control Center</h2>
+    </div>
+    <nav class="flex flex-col gap-2 text-sm font-medium">
+      @for (item of menu; track item.link) {
+        @if (canRender(item)) {
+          <a
+            [routerLink]="item.link"
+            routerLinkActive="router-link-active bg-white/10 text-white"
+            class="flex items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-white/70 transition hover:border-white/20 hover:text-white"
+          >
+            <span class="text-lg">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      }
+    </nav>
+    <div class="mt-auto rounded-2xl border border-white/5 bg-black/20 p-4 text-xs text-white/60">
+      <p class="uppercase tracking-[0.3rem]">Live SLA</p>
+      <p class="mt-1 text-lg font-semibold text-white">98.4%</p>
+      <p class="text-white/50">Avg. completion rate</p>
+    </div>
+  </aside>
+  <section class="flex flex-col gap-6">
+    <header class="flex flex-col gap-4 rounded-3xl border border-white/5 bg-white/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[0.3rem] text-white/50">Active Session</p>
+        <p class="text-2xl font-semibold">
+          @if (user()?.email; as email) {
+            {{ email }}
+          } @else {
+            Signed user
+          }
+        </p>
+        <p class="text-white/60">Role: {{ roleLabel() }}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="rounded-2xl border border-white/10 px-4 py-2 text-sm text-white/70 hover:border-white/30 hover:text-white" (click)="logout()">
+          Sign out
+        </button>
+      </div>
+    </header>
+    <div class="rounded-3xl border border-white/5 bg-white/5 p-4 lg:p-6">
+      <router-outlet />
+    </div>
+  </section>
+</div>

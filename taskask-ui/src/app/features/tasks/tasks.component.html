@@ -1,0 +1,167 @@
+<div class="space-y-6 text-white">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <p class="text-xs uppercase tracking-[0.35rem] text-white/50">Tasks board</p>
+      <h1 class="text-3xl font-semibold">Coordinate execution</h1>
+      <p class="text-sm text-white/60">Filter by status, drill into context, and narrate progress with comments.</p>
+    </div>
+    @if (canManageTasks()) {
+      <button class="self-start rounded-2xl bg-accent/80 px-5 py-3 text-sm font-semibold text-black hover:bg-accent" (click)="showCreate.set(!showCreate())">
+        @if (showCreate()) { Close composer } @else { New mission }
+      </button>
+    } @else {
+      <span class="rounded-2xl border border-white/10 px-4 py-2 text-xs text-white/60">View only</span>
+    }
+  </div>
+
+  <form class="grid gap-4 rounded-3xl border border-white/5 bg-black/20 p-4 sm:grid-cols-2 lg:grid-cols-4" [formGroup]="filterForm" (ngSubmit)="loadTasks()">
+    <label class="text-sm">
+      <span class="text-white/60">Status</span>
+      <select formControlName="status" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white">
+        <option [ngValue]="null">All</option>
+        @for (status of statuses; track status) {
+          <option [value]="status">{{ statusMeta[status].label }}</option>
+        }
+      </select>
+    </label>
+    <label class="text-sm">
+      <span class="text-white/60">Assignee</span>
+      <select formControlName="assigneeId" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white">
+        <option [ngValue]="null">Everyone</option>
+        @for (person of employees(); track person.id) {
+          <option [value]="person.id">{{ person.fullName }}</option>
+        }
+      </select>
+    </label>
+    <div class="flex items-end gap-3">
+      <button type="submit" class="flex-1 rounded-2xl border border-white/20 px-4 py-3 text-sm">Apply</button>
+      <button type="button" class="rounded-2xl border border-transparent px-4 py-3 text-sm text-white/60" (click)="filterForm.reset(); loadTasks();">
+        Reset
+      </button>
+    </div>
+  </form>
+
+  @if (showCreate() && canManageTasks()) {
+    <form class="space-y-4 rounded-3xl border border-accent/20 bg-accent/10 p-4" [formGroup]="taskForm" (ngSubmit)="createTask()">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-[0.35rem] text-white/50">Composer</p>
+          <p class="text-lg font-semibold">New task</p>
+        </div>
+        <button type="submit" class="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-black" [disabled]="taskForm.invalid || loadingAction()">Launch</button>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        <label class="text-sm">
+          <span class="text-white/60">Title</span>
+          <input formControlName="title" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" placeholder="Design ops sync" />
+        </label>
+        <label class="text-sm">
+          <span class="text-white/60">Priority</span>
+          <select formControlName="priority" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3">
+            @for (priority of priorities; track priority) {
+              <option [value]="priority">{{ priorityMeta[priority].label }}</option>
+            }
+          </select>
+        </label>
+        <label class="text-sm">
+          <span class="text-white/60">Start</span>
+          <input type="date" formControlName="startDate" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" />
+        </label>
+        <label class="text-sm">
+          <span class="text-white/60">Due</span>
+          <input type="date" formControlName="dueDate" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3" />
+        </label>
+      </div>
+      <label class="text-sm">
+        <span class="text-white/60">Description</span>
+        <textarea formControlName="description" rows="3" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3"></textarea>
+      </label>
+      <label class="text-sm">
+        <span class="text-white/60">Assignees</span>
+        <select formControlName="assigneeIds" multiple size="4" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3">
+          @for (person of employees(); track person.id) {
+            <option [value]="person.id">{{ person.fullName }}</option>
+          }
+        </select>
+        <p class="text-xs text-white/40">Hold Ctrl/Cmd to select multiple people.</p>
+      </label>
+    </form>
+  }
+
+  <div class="grid gap-4 lg:grid-cols-[2fr,1fr]">
+    <section class="space-y-4 rounded-3xl border border-white/5 bg-black/20 p-4">
+      <div class="flex items-center justify-between">
+        <p class="text-lg font-semibold">{{ tasks().length }} Tasks</p>
+        <span class="text-xs text-white/50">Auto syncs every refresh</span>
+      </div>
+      @if (loadingList()) {
+        <div class="py-6 text-center"><app-spinner /></div>
+      } @else if (tasks().length === 0) {
+        <app-empty-state title="No tasks found" description="Adjust filters or create a new task." />
+      } @else {
+        <div class="space-y-3">
+          @for (task of tasks(); track task.id) {
+            <article class="rounded-3xl border border-white/5 bg-white/5 p-4">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p class="text-base font-semibold">{{ task.title }}</p>
+                  <p class="text-sm text-white/60">{{ task.description || 'No description' }}</p>
+                  <p class="text-xs text-white/40">Due: {{ task.dueDate || '—' }}</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <app-status-badge [status]="task.status" />
+                  <app-status-badge [priority]="task.priority" />
+                </div>
+              </div>
+              <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-white/50">
+                <span>Owners: {{ task.assigneeNames?.join(', ') || 'Unassigned' }}</span>
+                <select class="rounded-2xl border border-white/10 bg-black/40 px-3 py-2" (change)="onStatusChange(task, $event)">
+                  @for (status of statuses; track status) {
+                    <option [selected]="task.status === status" [value]="status">{{ statusMeta[status].label }}</option>
+                  }
+                </select>
+                <button class="rounded-2xl border border-white/10 px-3 py-2" (click)="selectTask(task)">Inspect</button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="space-y-4 rounded-3xl border border-white/5 bg-black/30 p-4">
+      <div>
+        <p class="text-xs uppercase tracking-[0.35rem] text-white/50">Detail</p>
+        <p class="text-lg font-semibold">@if (selectedTask(); as task) { {{ task.title }} } @else { Select a task }</p>
+      </div>
+      @if (selectedTask(); as task) {
+        <div class="space-y-2 text-sm">
+          <p class="text-white/60">Description</p>
+          <p class="text-white/80">{{ task.description || 'No description recorded.' }}</p>
+          <p class="text-white/60">Assignees</p>
+          <p class="text-white/80">{{ activeAssignees() }}</p>
+        </div>
+        <div class="space-y-3">
+          <p class="text-sm uppercase tracking-[0.2rem] text-white/50">Comments</p>
+          <div class="space-y-2 max-h-64 overflow-y-auto pr-2">
+            @if (comments().length === 0) {
+              <p class="text-sm text-white/50">No comments yet.</p>
+            } @else {
+              @for (comment of comments(); track comment.id) {
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
+                  <p class="text-white/70">{{ comment.comment }}</p>
+                  <p class="text-xs text-white/40">{{ comment.authorEmail }} · {{ comment.createdAt | date:'short' }}</p>
+                </div>
+              }
+            }
+          </div>
+          <form class="space-y-2" [formGroup]="commentForm" (ngSubmit)="addComment()">
+            <textarea formControlName="comment" rows="2" class="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm" placeholder="Leave an update"></textarea>
+            <button type="submit" class="rounded-2xl bg-white/20 px-3 py-2 text-sm">Post</button>
+          </form>
+        </div>
+      } @else {
+        <app-empty-state title="No task selected" description="Pick a task to review insights." />
+      }
+    </section>
+  </div>
+</div>

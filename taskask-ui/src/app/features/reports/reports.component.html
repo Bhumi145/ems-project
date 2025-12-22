@@ -1,0 +1,90 @@
+<div class="space-y-6 text-white">
+  <!-- Dashboard summary cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="rounded-2xl bg-black/30 border border-white/10 p-6 flex flex-col items-center">
+      <span class="text-xs text-white/60 mb-1">My Team</span>
+      <span class="text-2xl font-bold">8</span>
+    </div>
+    <div class="rounded-2xl bg-black/30 border border-white/10 p-6 flex flex-col items-center">
+      <span class="text-xs text-white/60 mb-1">Tasks Pending</span>
+      <span class="text-2xl font-bold">12</span>
+    </div>
+    <div class="rounded-2xl bg-black/30 border border-white/10 p-6 flex flex-col items-center">
+      <span class="text-xs text-white/60 mb-1">Tasks Completed</span>
+      <span class="text-2xl font-bold">50</span>
+    </div>
+  </div>
+
+  <!-- Task Overview and Team Performance charts -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <section class="rounded-3xl border border-white/5 bg-black/20 p-4 flex flex-col items-center">
+      <p class="text-sm font-semibold mb-2">Task Overview</p>
+      <app-pie-chart [pending]="report()?.overdueTasks || 0" [inProgress]="(report()?.totalTasks || 0) - (report()?.completedTasks || 0) - (report()?.overdueTasks || 0)" [completed]="report()?.completedTasks || 0"></app-pie-chart>
+    </section>
+    <section class="rounded-3xl border border-white/5 bg-black/20 p-4 flex flex-col items-center">
+      <p class="text-sm font-semibold mb-2">Team Performance</p>
+      <app-performance-graph [monthlyData]="report()?.monthlySummary || []"></app-performance-graph>
+    </section>
+  </div>
+  <div class="flex flex-col gap-2">
+    <p class="text-xs uppercase tracking-[0.35rem] text-white/50">Reports</p>
+    <h1 class="text-3xl font-semibold">Narrative performance intelligence</h1>
+    <p class="text-sm text-white/60">Select an employee to surface their completion velocity, overdue risk, and monthly story.</p>
+  </div>
+
+  <form class="rounded-3xl border border-white/5 bg-black/20 p-4" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="text-sm">
+      <span class="text-white/60">Employee</span>
+      <select formControlName="employeeId" class="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3">
+        @for (employee of employees(); track employee.id) {
+          <option [value]="employee.id">{{ employee.fullName }}</option>
+        }
+      </select>
+    </label>
+    <button type="submit" class="mt-4 rounded-2xl border border-white/20 px-4 py-3 text-sm">Load report</button>
+  </form>
+
+  @if (loading()) {
+    <div class="py-6 text-center"><app-spinner /></div>
+  } @else if (!report()) {
+    <app-empty-state title="No report" description="Pick a teammate to view detailed metrics." />
+  } @else {
+    <div class="space-y-6">
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <app-stat-card label="Total tasks" [value]="report()!.totalTasks" />
+        <app-stat-card label="Completed" [value]="report()!.completedTasks" />
+        <app-stat-card label="Completion rate" [value]="(report()!.completionRate * 100 | number:'1.0-0') + '%'" />
+        <app-stat-card label="Overdue" [value]="report()!.overdueTasks" />
+      </div>
+      <section class="rounded-3xl border border-white/5 bg-black/20 p-4">
+        <p class="text-sm font-semibold">Monthly breakdown</p>
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="text-white/50">
+              <tr>
+                <th class="px-3 py-2">Month</th>
+                <th class="px-3 py-2">Total</th>
+                <th class="px-3 py-2">Completed</th>
+                <th class="px-3 py-2">Completion</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of report()!.monthlySummary; track row.month) {
+                <tr class="border-t border-white/5">
+                  <td class="px-3 py-2">{{ row.month }}/{{ row.year }}</td>
+                  <td class="px-3 py-2">{{ row.total }}</td>
+                  <td class="px-3 py-2">{{ row.completed }}</td>
+                  <td class="px-3 py-2">{{ row.completionRate * 100 | number:'1.0-0' }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-white/5 bg-black/20 p-4">
+        <app-performance-graph [monthlyData]="report()!.monthlySummary"></app-performance-graph>
+      </section>
+    </div>
+  }
+</div>

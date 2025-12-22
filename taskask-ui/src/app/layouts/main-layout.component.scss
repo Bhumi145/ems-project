@@ -1,0 +1,7 @@
+:host {
+  display: block;
+}
+
+a[routerLink].router-link-active {
+  border-color: rgba(255, 255, 255, 0.25);
+}

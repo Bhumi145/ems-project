@@ -1,0 +1,1 @@
+// Legacy Role enum removed. Use AppRole and ROLE_LABELS from core/constants/app.constants.ts
