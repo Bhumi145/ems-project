@@ -4,6 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 
 import { AppRole, ROLE_LABELS } from '../core/constants/app.constants';
 import { AuthService } from '../core/services/auth.service';
+import { NotificationPanelComponent } from '../shared/ui/notification-panel.component';
 
 interface NavigationItem {
   label: string;
@@ -15,7 +16,7 @@ interface NavigationItem {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NotificationPanelComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss'
 })

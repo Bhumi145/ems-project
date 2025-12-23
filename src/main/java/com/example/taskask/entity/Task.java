@@ -59,6 +59,9 @@ public class Task {
     @Column(length = 2000)
     private String remarks;
 
+    @Column(columnDefinition = "int default 0")
+    private int escalationLevel;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
     private User assignee;

@@ -14,6 +14,8 @@ import com.example.taskask.enums.TaskStatus;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
+    List<Task> findByStatusNotAndDueDateBefore(TaskStatus taskStatus, LocalDate now);
+
     interface MonthlySummaryProjection {
         Integer getYear();
         Integer getMonth();

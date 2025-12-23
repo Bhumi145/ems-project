@@ -1,3 +1,4 @@
+import { TaskWorkflowService } from '../../core/services/task-workflow.service';
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -27,6 +28,50 @@ import { AppRole } from '../../core/constants/app.constants';
   templateUrl: './tasks.component.html'
 })
 export class TasksComponent implements OnInit {
+
+    private readonly workflowService = inject(TaskWorkflowService);
+
+    // Workflow action helpers
+    canSubmitForReview(task: TaskResponse): boolean {
+      return task.status === TaskStatus.DRAFT || task.status === TaskStatus.REWORK;
+    }
+    canApprove(task: TaskResponse): boolean {
+      return task.status === TaskStatus.REVIEW && this.authService.hasRole([AppRole.ADMIN, AppRole.MANAGER]);
+    }
+    canReject(task: TaskResponse): boolean {
+      return task.status === TaskStatus.REVIEW && this.authService.hasRole([AppRole.ADMIN, AppRole.MANAGER]);
+    }
+    canComplete(task: TaskResponse): boolean {
+      return task.status === TaskStatus.APPROVED;
+    }
+    canRework(task: TaskResponse): boolean {
+      return task.status === TaskStatus.REJECTED;
+    }
+
+    submitForReview(task: TaskResponse) {
+      this.workflowService.submitForReview(task.id).subscribe(updated => this.updateTaskInList(updated));
+    }
+    approve(task: TaskResponse) {
+      this.workflowService.approve(task.id).subscribe(updated => this.updateTaskInList(updated));
+    }
+    reject(task: TaskResponse) {
+      const comment = prompt('Enter rejection reason (optional):') || '';
+      this.workflowService.reject(task.id, comment).subscribe(updated => this.updateTaskInList(updated));
+    }
+    complete(task: TaskResponse) {
+      this.workflowService.complete(task.id).subscribe(updated => this.updateTaskInList(updated));
+    }
+    rework(task: TaskResponse) {
+      const comment = prompt('Enter rework note (optional):') || '';
+      this.workflowService.rework(task.id, comment).subscribe(updated => this.updateTaskInList(updated));
+    }
+
+    private updateTaskInList(updated: TaskResponse) {
+      this.tasks.update(items => items.map(item => (item.id === updated.id ? updated : item)));
+      if (this.selectedTask()?.id === updated.id) {
+        this.selectedTask.set(updated);
+      }
+    }
   protected readonly TaskStatus = TaskStatus;
   protected readonly TaskPriority = TaskPriority;
   protected readonly statuses = Object.values(TaskStatus);

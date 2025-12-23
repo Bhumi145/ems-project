@@ -134,11 +134,30 @@
         <p class="text-lg font-semibold">@if (selectedTask(); as task) { {{ task.title }} } @else { Select a task }</p>
       </div>
       @if (selectedTask(); as task) {
+        <div class="flex flex-wrap gap-2 mb-2">
+          <button *ngIf="canSubmitForReview(task)" class="rounded-2xl bg-blue-600 px-3 py-2 text-xs text-white" (click)="submitForReview(task)">Submit for Review</button>
+          <button *ngIf="canApprove(task)" class="rounded-2xl bg-green-600 px-3 py-2 text-xs text-white" (click)="approve(task)">Approve</button>
+          <button *ngIf="canReject(task)" class="rounded-2xl bg-red-600 px-3 py-2 text-xs text-white" (click)="reject(task)">Reject</button>
+          <button *ngIf="canComplete(task)" class="rounded-2xl bg-purple-600 px-3 py-2 text-xs text-white" (click)="complete(task)">Complete</button>
+          <button *ngIf="canRework(task)" class="rounded-2xl bg-yellow-600 px-3 py-2 text-xs text-black" (click)="rework(task)">Rework</button>
+        </div>
         <div class="space-y-2 text-sm">
           <p class="text-white/60">Description</p>
           <p class="text-white/80">{{ task.description || 'No description recorded.' }}</p>
           <p class="text-white/60">Assignees</p>
           <p class="text-white/80">{{ activeAssignees() }}</p>
+          <p class="text-white/60">SLA Status</p>
+          <p class="text-white/80">
+            <span *ngIf="task.slaBreached; else onTime" class="text-red-400 font-bold">SLA Breached</span>
+            <ng-template #onTime><span class="text-green-400">On Time</span></ng-template>
+          </p>
+          <p class="text-white/60">Escalation Level</p>
+          <p class="text-white/80">
+            {{ task.escalationLevel === 0 ? 'Employee' :
+               task.escalationLevel === 1 ? 'Team Lead' :
+               task.escalationLevel === 2 ? 'Manager' :
+               task.escalationLevel === 3 ? 'Admin' : '—' }}
+          </p>
         </div>
         <div class="space-y-3">
           <p class="text-sm uppercase tracking-[0.2rem] text-white/50">Comments</p>

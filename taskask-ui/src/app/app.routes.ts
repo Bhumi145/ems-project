@@ -26,6 +26,18 @@ export const routes: Routes = [
 				component: EmployeesComponent,
 				canMatch: [roleGuard],
 				data: { roles: [AppRole.ADMIN, AppRole.MANAGER] }
+			},
+			{
+				path: 'hr',
+				loadChildren: () => import('./features/hr/hr.module').then(m => m.HrModule),
+				canMatch: [roleGuard],
+				data: { roles: [AppRole.HR] }
+			},
+			{
+				path: 'team-lead',
+				loadChildren: () => import('./features/team-lead/team-lead.module').then(m => m.TeamLeadModule),
+				canMatch: [roleGuard],
+				data: { roles: [AppRole.TEAM_LEAD] }
 			}
 		]
 	},

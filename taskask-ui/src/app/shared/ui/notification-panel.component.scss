@@ -1,0 +1,21 @@
+.notification-panel {
+  background: #23272f;
+  color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  min-width: 250px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.notification-panel h4 {
+  margin-top: 0;
+}
+.notification-panel ul {
+  list-style: none;
+  padding: 0;
+}
+.notification-panel li {
+  margin-bottom: 0.5rem;
+}
+.unread {
+  font-weight: bold;
+}

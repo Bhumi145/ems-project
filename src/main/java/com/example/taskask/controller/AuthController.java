@@ -12,8 +12,9 @@ import com.example.taskask.dto.CreateUserRequest;
 import com.example.taskask.dto.LoginRequest;
 import com.example.taskask.entity.User;
 import com.example.taskask.repository.UserRepository;
-import com.example.taskask.security.JwtService;
+import com.example.taskask.service.AuditLogService;
 import com.example.taskask.service.AuthService;
+import com.example.taskask.security.JwtService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -35,16 +37,28 @@ public class AuthController {
             throw new IllegalArgumentException("Admin/Manager registration is only allowed as the first user.");
         }
         User user = authService.register(request);
+        auditLogService.logAudit("REGISTER_USER", "USER", user.getId(), "User registered with email: " + user.getEmail(), user.getId());
         String token = jwtService.generateToken(user);
         return AuthResponse.builder()
                 .token(token)
                 .email(user.getEmail())
                 .role(user.getRole())
+                .id(user.getId())
                 .build();
     }
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+        AuthResponse response = authService.login(request);
+        User user = userRepository.findByEmail(response.getEmail()).orElse(null);
+        if (user != null) {
+            auditLogService.logAudit("LOGIN", "USER", user.getId(), "User logged in", user.getId());
+        }
+        return AuthResponse.builder()
+                .token(response.getToken())
+                .email(response.getEmail())
+                .role(response.getRole())
+                .id(user != null ? user.getId() : null)
+                .build();
     }
 }

@@ -1,16 +1,22 @@
 // Centralized role and route constants for maintainability and scalability
 // Use these everywhere instead of hardcoding strings
 
+
 export enum AppRole {
   ADMIN = 'ADMIN',
   MANAGER = 'MANAGER',
   EMPLOYEE = 'EMPLOYEE',
+  HR = 'HR',
+  TEAM_LEAD = 'TEAM_LEAD',
 }
+
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   [AppRole.ADMIN]: 'Admin',
   [AppRole.MANAGER]: 'Manager',
   [AppRole.EMPLOYEE]: 'Employee',
+  [AppRole.HR]: 'HR',
+  [AppRole.TEAM_LEAD]: 'Team Lead',
 };
 
 export const ROUTES = {

@@ -4,6 +4,7 @@ export interface AuthResponse {
   token: string;
   email: string;
   role: AppRole;
+  id: number;
 }
 
 export interface LoginRequest {

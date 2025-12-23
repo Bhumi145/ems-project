@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -34,18 +35,31 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(sm ->
-                        sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/health", "/actuator/health")
-                        .permitAll()
-                        .anyRequest().authenticated()
-                )
-                .userDetailsService(customUserDetailsService)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .cors(Customizer.withDefaults())
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(sm ->
+                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**", "/health", "/actuator/health").permitAll()
+                // Role & Permission APIs
+                .requestMatchers("/api/roles/**", "/api/permissions/**").hasRole("ADMIN")
+                // Employees: allow create/list/get for Admin/Manager
+                .requestMatchers(HttpMethod.POST, "/api/employees").hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(HttpMethod.GET, "/api/employees/**").hasAnyRole("ADMIN", "MANAGER")
+                // Task history (viewable by all authenticated users)
+                .requestMatchers("/api/tasks/*/history/**").authenticated()
+                // Audit logs (admin only)
+                .requestMatchers("/api/audit-logs/**").hasRole("ADMIN")
+                // Notifications (user can only access their own)
+                .requestMatchers("/api/notifications/user/*").authenticated()
+                // KPI APIs (manager, admin, HR)
+                .requestMatchers("/api/kpi/**").hasAnyRole("ADMIN", "MANAGER", "HR")
+                // Default: all other endpoints require authentication
+                .anyRequest().authenticated()
+            )
+            .userDetailsService(customUserDetailsService)
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

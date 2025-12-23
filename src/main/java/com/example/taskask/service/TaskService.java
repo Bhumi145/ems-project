@@ -3,6 +3,10 @@ package com.example.taskask.service;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.example.taskask.entity.*;
+import com.example.taskask.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,26 +21,108 @@ import com.example.taskask.dto.TaskCommentRequest;
 import com.example.taskask.dto.TaskCommentResponse;
 import com.example.taskask.dto.TaskDashboardResponse;
 import com.example.taskask.dto.TaskResponse;
-import com.example.taskask.entity.EmployeeProfile;
-import com.example.taskask.entity.Task;
-import com.example.taskask.entity.TaskAssignment;
-import com.example.taskask.entity.TaskComment;
-import com.example.taskask.entity.User;
 import com.example.taskask.enums.Role;
 import com.example.taskask.enums.TaskAssignmentStatus;
 import com.example.taskask.enums.TaskStatus;
-import com.example.taskask.repository.EmployeeProfileRepository;
-import com.example.taskask.repository.TaskAssignmentRepository;
-import com.example.taskask.repository.TaskCommentRepository;
-import com.example.taskask.repository.TaskRepository;
-import com.example.taskask.repository.TaskRepository.MonthlySummaryProjection;
-import com.example.taskask.repository.UserRepository;
-
-import lombok.RequiredArgsConstructor;
+import com.example.taskask.service.AuditLogService;
 
 @Service
 @RequiredArgsConstructor
 public class TaskService {
+
+    // --- Workflow Transitions ---
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private TaskHistoryService taskHistoryService;
+    @Transactional
+    public TaskResponse submitForReview(Long taskId, String username) {
+        Task task = requireTask(taskId);
+        TaskStatus prev = task.getStatus();
+        if (prev != TaskStatus.DRAFT && prev != TaskStatus.REWORK) {
+            throw new IllegalStateException("Task must be in DRAFT or REWORK to submit for review");
+        }
+        task.setStatus(TaskStatus.REVIEW);
+        Task saved = taskRepository.save(task);
+        logHistory(task, prev, TaskStatus.REVIEW, username, "Submitted for review");
+        auditLogService.logAudit("SUBMIT_FOR_REVIEW", "TASK", taskId, "Submitted for review", getUserIdByUsername(username));
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public TaskResponse approve(Long taskId, String username) {
+        Task task = requireTask(taskId);
+        TaskStatus prev = task.getStatus();
+        if (prev != TaskStatus.REVIEW) {
+            throw new IllegalStateException("Task must be in REVIEW to approve");
+        }
+        task.setStatus(TaskStatus.APPROVED);
+        Task saved = taskRepository.save(task);
+        logHistory(task, prev, TaskStatus.APPROVED, username, "Approved");
+        auditLogService.logAudit("APPROVE_TASK", "TASK", taskId, "Approved", getUserIdByUsername(username));
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public TaskResponse reject(Long taskId, String username, String comment) {
+        Task task = requireTask(taskId);
+        TaskStatus prev = task.getStatus();
+        if (prev != TaskStatus.REVIEW) {
+            throw new IllegalStateException("Task must be in REVIEW to reject");
+        }
+        task.setStatus(TaskStatus.REJECTED);
+        Task saved = taskRepository.save(task);
+        logHistory(task, prev, TaskStatus.REJECTED, username, comment != null ? comment : "Rejected");
+        auditLogService.logAudit("REJECT_TASK", "TASK", taskId, comment != null ? comment : "Rejected", getUserIdByUsername(username));
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public TaskResponse complete(Long taskId, String username) {
+        Task task = requireTask(taskId);
+        TaskStatus prev = task.getStatus();
+        if (prev != TaskStatus.APPROVED) {
+            throw new IllegalStateException("Task must be APPROVED to complete");
+        }
+        task.setStatus(TaskStatus.COMPLETED);
+        Task saved = taskRepository.save(task);
+        logHistory(task, prev, TaskStatus.COMPLETED, username, "Completed");
+        auditLogService.logAudit("COMPLETE_TASK", "TASK", taskId, "Completed", getUserIdByUsername(username));
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public TaskResponse rework(Long taskId, String username, String comment) {
+        Task task = requireTask(taskId);
+        TaskStatus prev = task.getStatus();
+        if (prev != TaskStatus.REJECTED) {
+            throw new IllegalStateException("Task must be REJECTED to rework");
+        }
+        task.setStatus(TaskStatus.REWORK);
+        Task saved = taskRepository.save(task);
+        logHistory(task, prev, TaskStatus.REWORK, username, comment != null ? comment : "Rework started");
+        auditLogService.logAudit("REWORK_TASK", "TASK", taskId, comment != null ? comment : "Rework started", getUserIdByUsername(username));
+        return toResponse(saved);
+    }
+
+    private void logHistory(Task task, TaskStatus from, TaskStatus to, String username, String comment) {
+        TaskHistory history = new TaskHistory();
+        history.setTask(task);
+        history.setFromStatus(from.name());
+        history.setToStatus(to.name());
+        history.setChangedBy(getUserIdByUsername(username));
+        history.setChangedAt(java.time.LocalDateTime.now());
+        history.setComment(comment);
+        taskHistoryService.save(history);
+    }
+
+    private Long getUserIdByUsername(String username) {
+        return userRepository.findByEmail(username).map(User::getId).orElse(null);
+    }
+
+    private Task requireTask(Long id) {
+        return taskRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Task not found"));
+    }
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 100;
@@ -45,7 +131,7 @@ public class TaskService {
     private final TaskAssignmentRepository taskAssignmentRepository;
     private final EmployeeProfileRepository employeeProfileRepository;
     private final TaskCommentRepository taskCommentRepository;
-    private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public TaskResponse createTask(CreateTaskRequest request) {
@@ -98,6 +184,10 @@ public class TaskService {
                 .build())
             .toList();
         taskAssignmentRepository.saveAll(assignments);
+
+        if (currentUser != null) {
+            auditLogService.logAudit("CREATE_TASK", "TASK", saved.getId(), "Task created with title: " + saved.getTitle(), currentUser.getId());
+        }
 
         return toResponse(saved);
     }
@@ -240,7 +330,7 @@ public class TaskService {
                 .build();
     }
 
-    private MonthlySummaryResponse toMonthlySummary(MonthlySummaryProjection projection) {
+    private MonthlySummaryResponse toMonthlySummary(TaskRepository.MonthlySummaryProjection projection) {
         long total = projection.getTotal() != null ? projection.getTotal() : 0L;
         long completed = projection.getCompleted() != null ? projection.getCompleted() : 0L;
         double rate = total == 0 ? 0.0 : (double) completed / total;

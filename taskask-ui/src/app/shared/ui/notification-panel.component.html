@@ -1,0 +1,11 @@
+<div class="notification-panel">
+  <h4>Notifications</h4>
+  <div *ngIf="loading">Loading...</div>
+  <ul *ngIf="!loading && notifications.length">
+    <li *ngFor="let n of notifications">
+      <span [class.unread]="!n.isRead">{{ n.message }}</span>
+      <small>{{ n.createdAt | date:'short' }}</small>
+    </li>
+  </ul>
+  <div *ngIf="!loading && !notifications.length">No notifications.</div>
+</div>
