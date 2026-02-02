@@ -1,0 +1,44 @@
+services:
+
+  mysql:
+    image: mysql:8
+    container_name: ems-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Bhumi@123
+      MYSQL_DATABASE: taskmanager
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: ems-backend
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/taskmanager
+      DB_USERNAME: root
+      DB_PASSWORD: Bhumi@123
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./taskask-ui
+    container_name: ems-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+
+volumes:
+  mysql_data:
